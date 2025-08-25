@@ -8,11 +8,36 @@ members = [
     "pallets/randao",
     "pallets/support"
 ]
+exclude = ["vendor/schnorrkel"]
 
 [workspace.dependencies]
-schnorrkel = "0.9.1"
 sp-core = { git = "https://github.com/Quantum-Blockchains/substrate.git", branch = "qmc-v0.0.1" }
 substrate-bip39 = { git = "https://github.com/Quantum-Blockchains/substrate.git", branch = "qmc-v0.0.1" }
 
+[patch.crates-io]
+# Force using our vendored schnorrkel implementation across the workspace
+schnorrkel = { path = "vendor/schnorrkel" }
+# Use the vendored substrate-bip39 (modified to reference vendor/schnorrkel)
+substrate-bip39 = { path = "vendor/substrate-bip39-0.4.6" }
 
-
+[patch."https://github.com/Quantum-Blockchains/substrate.git"]
+# Ensure the substrate git dependency and its crates use the vendored schnorrkel
+schnorrkel = { path = "vendor/schnorrkel" }
+# Also override substrate crates fetched from the substrate git source to use our
+# local vendored/substrate copy and fixes.
+substrate-bip39 = { path = "vendor/substrate-bip39-0.4.6" }
+# Force the sp-io crate (from the substrate git checkout) to use our patched copy
+# so the #[no_mangle] panic handler edit is respected.
+sp-io = { path = "vendor/substrate/primitives/io" }
+sp-core = { path = "vendor/substrate/primitives/core" }
+sp-application-crypto = { path = "vendor/substrate/primitives/application-crypto" }
+sp-runtime = { path = "vendor/substrate/primitives/runtime" }
+sp-std = { path = "vendor/substrate/primitives/std" }
+sp-trie = { path = "vendor/substrate/primitives/trie" }
+sp-externalities = { path = "vendor/substrate/primitives/externalities" }
+sp-storage = { path = "vendor/substrate/primitives/storage" }
+sp-runtime-interface = { path = "vendor/substrate/primitives/runtime-interface" }
+sp-state-machine = { path = "vendor/substrate/primitives/state-machine" }
+sp-wasm-interface = { path = "vendor/substrate/primitives/wasm-interface" }
+sp-tracing = { path = "vendor/substrate/primitives/tracing" }
+sp-debug-derive = { path = "vendor/substrate/primitives/debug-derive" }

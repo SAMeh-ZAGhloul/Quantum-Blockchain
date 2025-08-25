@@ -1,6 +1,6 @@
 # Quantum Secured Blockchain
 
-**Note:** this is forked from: https://github.com/Quantum-Blockchains/quantum-metachain (with minor updates for rust packages in Cargo.toml)
+**Note:** this is forked from: https://github.com/Quantum-Blockchains/quantum-metachain (with minor updates for rust packages ... see "**Build & Vendoring fixes (developer notes)**" section below)
 
 This is a repository for Quantum Meta-chain, an implementation of a quantum node using quantum and post-quantum security. It is a fork of a rust-based repository, [Substrate](https://github.com/paritytech/substrate).
 
@@ -19,6 +19,8 @@ This is a repository for Quantum Meta-chain, an implementation of a quantum node
   - [4.2 Rust unit tests](#42-rust-unit-tests)
   - [4.3 Key rotation tests](#43-key-rotation-tests)
 - [5 - Documentation](#5-documentation)
+- [6. The whitepaper](#6-the-whitepaper)
+- [Build &amp; Vendoring fixes (developer notes)](#build--vendoring-fixes-developer-notes)
 
 ## 1. Setup
 
@@ -221,3 +223,38 @@ open -a "Google Chrome" index.html
 cd target/doc/qmc_node
 firefox index.html
 ```
+
+## Build & Vendoring fixes (developer notes)
+
+This section documents recent local fixes made to get the repository to build locally when dependency conflicts appeared.
+
+- Vendored `schnorrkel` v0.9.1 into `vendor/schnorrkel` and added a patch so workspace consumers resolve the same version.
+- Vendored `substrate-bip39` v0.4.6 into `vendor/substrate-bip39-0.4.6` and updated its `Cargo.toml` to depend on the vendored `schnorrkel` (path = `../schnorrkel`).
+- Cloned the Quantum-Blockchains Substrate fork (branch `qmc-v0.0.1`) into `vendor/substrate` to allow small local edits and path overrides.
+- Patched `vendor/substrate/primitives/io/src/lib.rs` to remove an invalid `#[no_mangle]` on the panic handler (rustc rejects `#[no_mangle]` on internal language items).
+- Added `patch` entries to the workspace `Cargo.toml` to force several substrate primitive crates (for example `sp-io`, `sp-core`, `sp-runtime`, `sp-std`, `sp-trie`, `sp-externalities`, `sp-storage`, `sp-runtime-interface`, `sp-state-machine`, `sp-wasm-interface`, `sp-tracing`, `sp-debug-derive`) to use the local `vendor/substrate/primitives/*` copies.
+
+What was observed while iterating:
+
+- Initial cause: two different `schnorrkel` releases (v0.9.1 vs v0.11.x) and `sha2` version divergence produced E0308 type mismatch errors in sr25519-related code.
+- After vendoring and patching, builds showed "Patch ... was not used in the crate graph" warnings when the patched source/version/features did not match the dependency requirements.
+- A rustc error about `#[no_mangle]` on internal language items appeared because an unpatched git checkout of `sp-io` was still being resolved by Cargo; vendoring `sp-io` and patching it fixed that specific error.
+- The build later surfaced duplicate `sp-core` and other `sp-*` crates (some resolved from the git checkout and some from `vendor/`), leading to further E0308 mismatches; the mitigation is to ensure all `sp-*` crates pulled from the substrate git source are overridden to `vendor/substrate/primitives/*` via exact `patch` entries.
+
+Commands used while debugging (run from repo root):
+
+```bash
+rm -f Cargo.lock
+cargo clean
+cargo update
+cargo build -p qmc-node --manifest-path bin/node/Cargo.toml -v
+```
+
+Next recommended steps (if build still fails):
+
+- Ensure the root `Cargo.toml` contains `patch` entries for every crate that the substrate git source exposes into the graph (add any missing `sp-*` names reported in "Patch ... was not used").
+- After editing `Cargo.toml` run `rm -f Cargo.lock && cargo update` to force re-resolution.
+- Use `cargo tree -d` to find duplicates and `cargo tree -p schnorrkel` or `cargo tree -p sp-core` to verify which path is used.
+- If the repository continues to resolve some substrate crates from the network git checkout (`~/.cargo/git/checkouts/...`), add the exact source patch for `"https://github.com/Quantum-Blockchains/substrate.git"` mapping the crate name to the corresponding `vendor/substrate/primitives/*` path.
+
+If you want, I can continue iterating to make the build green by adding any missing `patch` entries reported by Cargo and re-running the build until there are no duplicate `sp-*` crates remaining.
