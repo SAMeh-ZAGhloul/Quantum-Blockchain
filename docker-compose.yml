@@ -1,0 +1,129 @@
+version: '3'
+services:
+  alice:
+    image: quantum-metachain
+    tty: true
+    ports:
+      - '30333:30333'
+      - '9944:9944'
+      - '9933:9933'
+      - '5002:5002'
+    volumes:
+      - ./docker/local/alice/config.json:/app/runner/config.json:ro
+      - ./docker/local/alice/node_key:/app/runner/node_key:ro
+      - ./docker/local/alice/psk:/app/runner/psk
+      - ./runner/certificates:/app/runner/certificates:ro
+      - alice_data:/data
+    command: >
+      python3 runner/app.py --config-file config.json --process './qmc-node
+      --alice
+      --name alice
+      --chain=local
+      --base-path=/data/alice
+      --port 30333
+      --ws-port 9944
+      --rpc-port 9933
+      --rpc-cors all
+      --validator
+      --rpc-methods=Unsafe
+      --unsafe-ws-external'
+
+  bob:
+    image: quantum-metachain
+    tty: true
+    depends_on:
+      - alice
+    ports:
+      - '30334:30333'
+      - '9945:9944'
+      - '9934:9933'
+      - '5004:5002'
+    volumes:
+      - ./docker/local/bob/config.json:/app/runner/config.json:ro
+      - ./docker/local/bob/node_key:/app/runner/node_key:ro
+      - ./docker/local/bob/psk:/app/runner/psk
+      - ./runner/certificates:/app/runner/certificates:ro
+      - bob_data:/data
+    command: >
+      python3 runner/app.py --config-file config.json --process './qmc-node
+      --bob
+      --name bob
+      --chain=local
+      --base-path=/data/bob
+      --port 30333
+      --ws-port 9944
+      --rpc-port 9933
+      --rpc-cors all
+      --validator
+      --rpc-methods=Unsafe
+      --unsafe-ws-external
+      --bootnodes=/ip4/172.20.0.2/tcp/30333/p2p/12D3KooWKzWKFojk7A1Hw23dpiQRbLs6HrXFf4EGLsN4oZ1WsWCc'
+  dave:
+    image: quantum-metachain
+    tty: true
+    depends_on:
+      - alice
+    ports:
+      - '30335:30333'
+      - '9946:9944'
+      - '9935:9933'
+      - '5005:5002'
+    volumes:
+      - ./docker/local/dave/config.json:/app/runner/config.json:ro
+      - ./docker/local/dave/node_key:/app/runner/node_key:ro
+      - ./docker/local/dave/psk:/app/runner/psk
+      - ./runner/certificates:/app/runner/certificates:ro
+      - dave_data:/data
+    command: >
+      python3 runner/app.py --config-file config.json --process './qmc-node
+      --dave
+      --name dave
+      --chain=local
+      --base-path=/data/dave
+      --port 30333
+      --ws-port 9944
+      --rpc-port 9933
+      --rpc-cors all
+      --validator
+      --rpc-methods=Unsafe
+      --unsafe-ws-external
+      --bootnodes=/ip4/172.20.0.2/tcp/30333/p2p/12D3KooWKzWKFojk7A1Hw23dpiQRbLs6HrXFf4EGLsN4oZ1WsWCc'
+  charlie:
+    image: quantum-metachain
+    tty: true
+    depends_on:
+      - alice
+    ports:
+      - '30336:30333'
+      - '9947:9944'
+      - '9936:9933'
+      - '5006:5002'
+    volumes:
+      - ./docker/local/charlie/config.json:/app/runner/config.json:ro
+      - ./docker/local/charlie/node_key:/app/runner/node_key:ro
+      - ./docker/local/charlie/psk:/app/runner/psk
+      - ./runner/certificates:/app/runner/certificates:ro
+      - charlie_data:/data
+    command: >
+      python3 runner/app.py --config-file config.json --process './qmc-node
+      --charlie
+      --name charlie
+      --chain=local
+      --base-path=/data/dave
+      --port 30333
+      --ws-port 9944
+      --rpc-port 9933
+      --rpc-cors all
+      --validator
+      --rpc-methods=Unsafe
+      --unsafe-ws-external
+      --bootnodes=/ip4/172.20.0.2/tcp/30333/p2p/12D3KooWKzWKFojk7A1Hw23dpiQRbLs6HrXFf4EGLsN4oZ1WsWCc'
+volumes:
+  alice_data:
+  bob_data:
+  dave_data:
+  charlie_data:
+
+networks:
+  default:
+    driver: bridge

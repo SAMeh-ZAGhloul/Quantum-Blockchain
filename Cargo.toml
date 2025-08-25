@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = [
+    "bin/node",
+    "bin/runtime",
+    "pallets/ocw-psk",
+    "pallets/ocw-randao",
+    "pallets/randao",
+    "pallets/support"
+]
+
+[workspace.dependencies]
+schnorrkel = "0.9.1"
+sp-core = { git = "https://github.com/Quantum-Blockchains/substrate.git", branch = "qmc-v0.0.1" }
+substrate-bip39 = { git = "https://github.com/Quantum-Blockchains/substrate.git", branch = "qmc-v0.0.1" }
+
+
+
